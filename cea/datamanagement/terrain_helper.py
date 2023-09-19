@@ -3,10 +3,8 @@ This script extracts terrain elevation from NASA - SRTM
 https://www2.jpl.nasa.gov/srtm/
 """
 
-
-
-
 import os
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -57,11 +55,6 @@ def calc_bounding_box_projected_coordinates(locator):
 
 
 def terrain_elevation_extractor(locator, config):
-    """this is where the action happens if it is more than a few lines in ``main``.
-    NOTE: ADD YOUR SCRIPT'S DOCUMENTATION HERE (how)
-    NOTE: RENAME THIS FUNCTION (SHOULD PROBABLY BE THE SAME NAME AS THE MODULE)
-    """
-
     # local variables:
     elevation = config.terrain_helper.elevation
     grid_size = config.terrain_helper.grid_size
@@ -96,35 +89,39 @@ def terrain_elevation_extractor(locator, config):
     # else:
     #     print("Proceeding to calculate terrain file with fixed elevation in m of ",elevation)
 
-    print("Proceeding to calculate terrain file with fixed elevation in m of ", elevation)
+    print(f"Proceeding to calculate terrain file with fixed elevation of {elevation}m")
 
     # now calculate the raster with the fixed elevation
-    calc_raster_terrain_fixed_elevation(crs, elevation, grid_size, raster_path, locator,
-                                        x_max, x_min, y_max, y_min)
+    calc_raster_terrain_fixed_elevation(crs, elevation, grid_size, raster_path, x_max, x_min, y_max, y_min)
 
 
-def calc_raster_terrain_fixed_elevation(crs, elevation, grid_size, raster_path, locator, x_max, x_min, y_max,
-                                        y_min):
+def calc_raster_terrain_fixed_elevation(crs, elevation, grid_size, raster_path, x_max, x_min, y_max, y_min):
     # local variables:
-    temp_shapefile = locator.get_temporary_file("terrain.shp")
-    cols = int((x_max - x_min) / grid_size)
-    rows = int((y_max - y_min) / grid_size)
-    shapes = Polygon([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max], [x_min, y_min]])
-    geodataframe = Gdf(index=[0], crs=crs, geometry=[shapes])
-    geodataframe.to_file(temp_shapefile)
-    # 1) opening the shapefile
-    source_ds = ogr.Open(temp_shapefile)
-    source_layer = source_ds.GetLayer()
-    target_ds = gdal.GetDriverByName('GTiff').Create(raster_path, cols, rows, 1, gdal.GDT_Float32)  ##COMMENT 2
-    target_ds.SetGeoTransform((x_min, grid_size, 0, y_max, 0, -grid_size))  ##COMMENT 3
-    # 5) Adding a spatial reference ##COMMENT 4
-    target_dsSRS = osr.SpatialReference()
-    target_dsSRS.ImportFromProj4(crs)
-    target_ds.SetProjection(target_dsSRS.ExportToWkt())
-    band = target_ds.GetRasterBand(1)
-    band.SetNoDataValue(-9999)  ##COMMENT 5
-    gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[elevation])  ##COMMENT 6
-    target_ds = None  # closing the file
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_shapefile = os.path.join(tmpdir, "terrain.shp")
+        cols = int((x_max - x_min) / grid_size)
+        rows = int((y_max - y_min) / grid_size)
+        shapes = Polygon([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max], [x_min, y_min]])
+        _gdf = Gdf(index=[0], crs=crs, geometry=[shapes])
+        _gdf.to_file(temp_shapefile)
+
+        # 1) opening the shapefile
+        source_ds = ogr.Open(temp_shapefile)
+        source_layer = source_ds.GetLayer()
+        target_ds = gdal.GetDriverByName('GTiff').Create(raster_path, cols, rows, 1, gdal.GDT_Float32)
+        target_ds.SetGeoTransform((x_min, grid_size, 0, y_max, 0, -grid_size))
+
+        # 5) Adding a spatial reference
+        target_ds_sref = osr.SpatialReference()
+        target_ds_sref.ImportFromProj4(crs)
+        target_ds.SetProjection(target_ds_sref.ExportToWkt())
+        band = target_ds.GetRasterBand(1)
+        band.SetNoDataValue(-9999)
+        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[elevation])
+
+        # closing file objects
+        source_ds = None
+        target_ds = None
 
 
 def main(config):
@@ -135,9 +132,7 @@ def main(config):
     :type config: cea.config.Configuration
     :return:
     """
-    assert os.path.exists(config.scenario), 'Scenario not found: %s' % config.scenario
     locator = cea.inputlocator.InputLocator(config.scenario)
-
     terrain_elevation_extractor(locator, config)
 
 
