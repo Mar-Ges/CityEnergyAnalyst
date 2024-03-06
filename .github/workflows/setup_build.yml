@@ -137,6 +137,10 @@ jobs:
           mkdir gui/dependencies/micromamba-root
           mv $MAMBA_ROOT_PREFIX/* gui/dependencies/micromamba-root
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
       - name: Package CEA GUI
         shell: bash
         env:
