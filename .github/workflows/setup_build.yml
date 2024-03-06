@@ -100,6 +100,7 @@ jobs:
   build_mac_dmg:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: ["macos-12", "macos-14"]
     steps:
