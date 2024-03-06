@@ -146,6 +146,7 @@ jobs:
           cd gui
           yarn
           yarn version --new-version $CEA_VERSION --no-git-tag-version
+          ulimit -n 4096
           yarn electron:build
 
       - name: Upload setup
