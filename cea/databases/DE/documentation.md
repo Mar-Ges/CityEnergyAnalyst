@@ -157,6 +157,7 @@ DIN EN 16789-1:2019 presents indoor environmental input parameters for design an
 |---   |---   |---  |
 | `Occ_m2P` | Occupancy density (refers to “code”) | According to Sagner: 48 m2 per person for house owner (SFH)  and 35m2 per Person in rented flats (MFH)  |
 | `El_Wm2` |  Peak specific electrical load due to artificial lighting (refers to “code”)| DIN V 18599-4 Anhang B (Abbildung B.12) =  6,4 W/m²  |
+| `Ea_Wm2` |  Peak specific electrical load due to  to computers and devices [W/m2] (refers to “code”)| educated guess and partly based on DIN V 18599-4; DIN EN 16798-1 and DIN V 18599-10 |
 | `Vw_ldp`  | Peak specific fresh water consumption (refers to “code”) | average water consumption for Germany [^BDEW] |
 | `Vww_ldp` | Peak specific hot water consumption (refers to “code”)| 10% of `Vww` (educated guess) |
 
